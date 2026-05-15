@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ZF Wind Power - Gearbox Telemetry</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .grid { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 10px; min-width: 200px; border: 2px solid #333; }
+        .alarm-active { border-color: #ff3333; background: #3a1111; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <h1>ZF Wind Power: Gearbox IIoT Monitor</h1>
+    <div class="grid">
+        <div class="card" id="temp-card">
+            <h3>Oil Temperature</h3>
+            <p id="temp-val">0.0 °C</p>
+        </div>
+        <div class="card">
+            <h3>Rotor Speed</h3>
+            <p id="rpm-val">0.0 RPM</p>
+        </div>
+        <div class="card" id="status-card">
+            <h3>System Status</h3>
+            <p id="status-val">INITIALIZING</p>
+        </div>
+    </div>
+
+    <script>
+        async function fetchTelemetry() {
+            try {
+                let response = await fetch('http://127.0.0');
+                let data = await response.json();
+                if(data.length === 0) return;
+                
+                let latest = data[data.length - 1];
+                
+                document.getElementById('temp-val').innerText = latest.gearbox_oil_temp_c + " °C";
+                document.getElementById('rpm-val').innerText = latest.rotor_speed_rpm + " RPM";
+                
+                let statusCard = document.getElementById('status-card');
+                let tempCard = document.getElementById('temp-card');
+                
+                if(latest.anomaly_detected || latest.gearbox_oil_temp_c > 80) {
+                    document.getElementById('status-val').innerText = "CRITICAL ANOMALY: BEARING SLIP";
+                    statusCard.className = "card alarm-active";
+                    tempCard.className = "card alarm-active";
+                } else {
+                    document.getElementById('status-val').innerText = "NOMINAL OPERATION";
+                    statusCard.className = "card";
+                    tempCard.className = "card";
+                }
+            } catch (err) { console.error("Database connection lost", err); }
+        }
+        setInterval(fetchTelemetry, 1000); 
+    </script>
+</body>
+</html>
